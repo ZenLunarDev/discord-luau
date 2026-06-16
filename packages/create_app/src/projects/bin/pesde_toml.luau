@@ -17,9 +17,9 @@ environment = "luau"
 default = "https://github.com/pesde-pkg/index"
 
 [dependencies]
-discord = { repo = "https://github.com/DiscordLuau/discord-luau.git", rev = "3f6eb77", path = "packages/discord_luau" }
-builders = { repo = "https://github.com/DiscordLuau/discord-luau.git", rev = "3f6eb77", path = "packages/builders" }
-classes = { repo = "https://github.com/DiscordLuau/discord-luau.git", rev = "3f6eb77", path = "packages/classes" }
+discord = { name = "discord_luau/discord_luau", version = "0.0.4" }
+builders = { name = "discord_luau/builders", version = "0.0.3" }
+classes = { name = "discord_luau/classes", version = "0.0.6" }
 
 [patches]
 "yetanotherclown/luau_futures" = { "2.0.0-beta.3 luau" = "patches/yetanotherclown+luau_futures-2.0.0-beta.3+luau.patch" }
