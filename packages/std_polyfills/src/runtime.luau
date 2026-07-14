@@ -4,7 +4,7 @@
 
 local LUNE_STRING_MATCH = "(Lune) (%d+%.%d+%.%d+.*)+(%d+)"
 local ZUNE_STRING_MATCH = "(zune) (%d+%.%d+%.%d+.*)+(%d+%.%d+)"
-local ERYX_STRING_MATCH = "(erxy) (%d+%.%d+)"
+local ERYX_STRING_MATCH = "(eryx) (%d+%.%d+)"
 
 local runtime = {}
 
