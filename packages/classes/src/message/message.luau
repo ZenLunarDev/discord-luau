@@ -680,6 +680,153 @@ function Message.Prototype.sync(self: Message, messageData: apiTypes.MessageObje
 	self.resolved = messageData.resolved and _require("../resolved").new(self.state, messageData.resolved)
 end
 
+function Message.Prototype.toJSON(self: Message): apiTypes.MessageObject
+	local json: apiTypes.MessageObject = {
+		id = self.id,
+		channel_id = self.channelId,
+		guild_id = self.guildId,
+		content = self.content,
+		timestamp = self.timestamp and self.timestamp:toIsoDate(),
+		tts = self.tts,
+		mention_everyone = self.mentionEveryone,
+		pinned = self.pinned,
+		webhook_id = self.webhookId,
+		application_id = self.applicationId,
+		type = self.type and apiTypes.message.MessageType[self.type] or 0,
+		flags = self.flags and self.flags:toNumber(),
+		position = self.position,
+	}
+
+	if self.mentions and #self.mentions > 0 then
+		json.mentions = {}
+		for _, mention in self.mentions do
+			table.insert(json.mentions, mention :: any)
+		end
+	end
+
+	if self.attachments and #self.attachments > 0 then
+		json.attachments = {}
+		for _, attachment in self.attachments do
+			table.insert(json.attachments, attachment :: any)
+		end
+	end
+
+	if self.embeds and #self.embeds > 0 then
+		json.embeds = {}
+		for _, embed in self.embeds do
+			table.insert(json.embeds, embed :: any)
+		end
+	end
+
+	if self.components and #self.components > 0 then
+		json.components = {}
+		for _, component in self.components do
+			table.insert(json.components, component :: any)
+		end
+	end
+
+	return json
+end
+
+function Message.Prototype.patchAsync(
+	self: Message,
+	patch: { [string]: any }
+): future.FutureLike<string, Message>
+	return future.Future.new(function()
+		local util = require("../../luau_packages/util")
+		local current = self:toJSON()
+		local merged = util.tableMerge.deepMerge(current, patch)
+
+		local request = self.state.rest:newRequest()
+		request:setFlag("FormdataRequest", true)
+
+		local response = rest.message
+			.editMessageAsync(request, self.channelId, self.id, merged :: any)
+			:await()
+
+		assert(response:isOk(), `{response:unwrapErr()}`)
+
+		self:sync(response:unwrapOk())
+
+		return self
+	end) :: future.FutureLike<string, Message>
+end
+
+function Message.Prototype.mergeAsync(
+	self: Message,
+	...: { [string]: any }
+): future.FutureLike<string, Message>
+	return future.Future.new(function()
+		local util = require("../../luau_packages/util")
+		local current = self:toJSON()
+
+		for _, source in { ... } do
+			current = util.tableMerge.deepMerge(current, source)
+		end
+
+		local request = self.state.rest:newRequest()
+		request:setFlag("FormdataRequest", true)
+
+		local response = rest.message
+			.editMessageAsync(request, self.channelId, self.id, current :: any)
+			:await()
+
+		assert(response:isOk(), `{response:unwrapErr()}`)
+
+		self:sync(response:unwrapOk())
+
+		return self
+	end) :: future.FutureLike<string, Message>
+end
+
+function Message.Prototype.toJSON(self: Message): apiTypes.MessageObject
+	local json: apiTypes.MessageObject = {
+		id = self.id,
+		channel_id = self.channelId,
+		guild_id = self.guildId,
+		content = self.content,
+		timestamp = self.timestamp and self.timestamp:toIsoDate(),
+		tts = self.tts,
+		mention_everyone = self.mentionEveryone,
+		pinned = self.pinned,
+		webhook_id = self.webhookId,
+		application_id = self.applicationId,
+		type = self.type and apiTypes.message.MessageType[self.type] or 0,
+		flags = self.flags and self.flags:toNumber(),
+		position = self.position,
+	}
+
+	if self.mentions and #self.mentions > 0 then
+		json.mentions = {}
+		for _, mention in self.mentions do
+			table.insert(json.mentions, mention :: any)
+		end
+	end
+
+	if self.attachments and #self.attachments > 0 then
+		json.attachments = {}
+		for _, attachment in self.attachments do
+			table.insert(json.attachments, attachment :: any)
+		end
+	end
+
+	if self.embeds and #self.embeds > 0 then
+		json.embeds = {}
+		for _, embed in self.embeds do
+			table.insert(json.embeds, embed :: any)
+		end
+	end
+
+	if self.components and #self.components > 0 then
+		json.components = {}
+		for _, component in self.components do
+			table.insert(json.components, component :: any)
+		end
+	end
+
+	return json
+end
+
 --[=[
 	@within Classes.Message
 	Creates a new Message instance with the specified message data.

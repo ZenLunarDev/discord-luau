@@ -10,4 +10,5 @@ return {
 	createGuid = require("@self/createGuid"),
 	coroutineRun = require("@self/coroutine/run"),
 	tableReflect = require("@self/table/reflect"),
+	tableMerge = require("@self/table/merge"),
 }

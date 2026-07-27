@@ -281,6 +281,51 @@ function Embed.Prototype.build(self: Embed): JSON
 	}
 end
 
+function Embed.Prototype.patch(self: Embed, patch: { [string]: any }): Embed
+	local merged = require("../../luau_packages/util").tableMerge.deepMerge(
+		table.clone(self),
+		patch
+	)
+
+	for key, value in merged do
+		self[key] = value
+	end
+
+	return self
+end
+
+function Embed.Prototype.merge(self: Embed, ...: { [string]: any }): Embed
+	for _, source in { ... } do
+		for key, value in source do
+			if type(value) == "table" and type(self[key]) == "table" then
+				self[key] = require("../../luau_packages/util").tableMerge.deepMerge(self[key], value)
+			else
+				self[key] = value
+			end
+		end
+	end
+
+	return self
+end
+
+function Embed.Interface.fromTable(resource: {
+	title: string?,
+	type: apiTypes.EmbedType?,
+	description: string?,
+	url: string?,
+	timestamp: stdPolyfills.DateTime?,
+	color: number?,
+	footer: embedFooter.JSON?,
+	image: embedImage.JSON?,
+	thumbnail: embedThumbnail.JSON?,
+	video: embedVideo.JSON?,
+	provider: embedProvider.JSON?,
+	author: embedAuthor.JSON?,
+	fields: { embedField.JSON }?,
+}): Embed
+	return Embed.Interface.new(resource)
+end
+
 --[=[
 	@within Builders.Embed
 

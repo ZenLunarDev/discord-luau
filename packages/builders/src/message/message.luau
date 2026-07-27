@@ -417,4 +417,60 @@ export type Message = typeof(Message.Prototype) & {
 
 export type JSON = typeof(Message.Prototype.build(nil :: any))
 
+function Message.Prototype.patch(self: Message, patch: { [string]: any }): Message
+	local util = require("../../luau_packages/util")
+	local merged = util.tableMerge.deepMerge(table.clone(self), patch)
+
+	for key, value in merged do
+		self[key] = value
+	end
+
+	return self
+end
+
+function Message.Prototype.merge(self: Message, ...: { [string]: any }): Message
+	local util = require("../../luau_packages/util")
+
+	for _, source in { ... } do
+		for key, value in source do
+			if type(value) == "table" and type(self[key]) == "table" then
+				self[key] = util.tableMerge.deepMerge(self[key], value)
+			else
+				self[key] = value
+			end
+		end
+	end
+
+	return self
+end
+
+function Message.Interface.fromTable(resource: {
+	content: string?,
+	nonce: string?,
+	tts: boolean?,
+	embeds: { embed.JSON }?,
+	allowedMentions: allowedMention.JSON?,
+	messageReference: reference.JSON?,
+	components: {
+		button.JSON
+		| textInput.JSON
+		| selectMenu.JSON
+		| actionRow.JSON
+		| textDisplay.JSON
+		| separator.JSON
+		| componentThumbnail.JSON
+		| mediaGallery.JSON
+		| file.JSON
+		| section.JSON
+		| container.JSON
+	}?,
+	stickerIds: { string }?,
+	attachments: { Attachment }?,
+	flags: string?,
+	enforceNonce: boolean?,
+	poll: poll.JSON?,
+}?): Message
+	return Message.Interface.new(resource)
+end
+
 return Message.Interface
