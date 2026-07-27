@@ -34,6 +34,11 @@ classes = { name = "discord_luau/classes", version = ">=0.0.0" }
 logger = { name = "discord_luau/logger", version = ">=0.0.0" }
 bit = { name = "discord_luau/bit", version = ">=0.0.0" }
 emitter = { name = "discord_luau/emitter", version = ">=0.0.0" }
+collector = { name = "discord_luau/collector", version = ">=0.0.0" }
+scheduler = { name = "discord_luau/scheduler", version = ">=0.0.0" }
+plugins = { name = "discord_luau/plugins", version = ">=0.0.0" }
+guard = { name = "discord_luau/guard", version = ">=0.0.0" }
+ratelimit = { name = "discord_luau/ratelimit", version = ">=0.0.0" }
 
 [patches]
 "yetanotherclown/luau_futures" = { "2.0.0-beta.3 luau" = "patches/yetanotherclown+luau_futures-2.0.0-beta.3+luau.patch" }
