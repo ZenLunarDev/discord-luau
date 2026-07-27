@@ -119,6 +119,56 @@ function Webhook.Interface.new(webhookData: apiTypes.WebhookObject): Webhook
 	return self
 end
 
+function Webhook.Prototype.toJSON(self: Webhook): apiTypes.WebhookObject
+	local json: apiTypes.WebhookObject = {
+		id = self.id,
+		type = self.type and apiTypes.webhook.WebhookType[self.type],
+		guild_id = self.guildId,
+		channel_id = self.channelId,
+		name = self.name,
+		avatar = self.avatar,
+		token = self.token,
+		application_id = self.applicationId,
+		url = self.url,
+	}
+
+	if self.user then
+		json.user = self.user :: any
+	end
+
+	return json
+end
+
+function Webhook.Prototype.patch(self: Webhook, patch: { [string]: any }): Webhook
+	local util = require("../../luau_packages/util")
+
+	for key, value in patch do
+		if type(value) == "table" and type(self[key]) == "table" then
+			self[key] = util.tableMerge.deepMerge(self[key], value)
+		else
+			self[key] = value
+		end
+	end
+
+	return self
+end
+
+function Webhook.Prototype.merge(self: Webhook, ...: { [string]: any }): Webhook
+	local util = require("../../luau_packages/util")
+
+	for _, source in { ... } do
+		for key, value in source do
+			if type(value) == "table" and type(self[key]) == "table" then
+				self[key] = util.tableMerge.deepMerge(self[key], value)
+			else
+				self[key] = value
+			end
+		end
+	end
+
+	return self
+end
+
 export type Webhook = typeof(Webhook.Prototype) & {
 	id: apiTypes.Snowflake,
 	type: apiTypes.WebhookType,

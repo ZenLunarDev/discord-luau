@@ -434,6 +434,118 @@ function Member.Interface.new(
 	return self
 end
 
+function Member.Prototype.toJSON(self: Member): apiTypes.GuildMemberObject
+	local json: apiTypes.GuildMemberObject = {
+		user = self.user :: any,
+		nick = self.nick,
+		avatar = self.avatar,
+		roles = self.roles,
+		joined_at = self.joinedAt and self.joinedAt:toIsoDate(),
+		premium_since = self.premiumSince and self.premiumSince:toIsoDate(),
+		deaf = self.deaf,
+		mute = self.mute,
+		pending = self.pending,
+		permissions = self.permissions,
+	}
+
+	if self.communicationDisabledUntil then
+		json.communication_disabled_until = self.communicationDisabledUntil:toIsoDate()
+	end
+
+	if self.avatarDecorationData then
+		json.avatar_decoration_data = self.avatarDecorationData :: any
+	end
+
+	if self.flags then
+		json.flags = self.flags:toNumber()
+	end
+
+	return json
+end
+
+function Member.Prototype.patch(self: Member, patch: { [string]: any }): Member
+	local util = require("../../luau_packages/util")
+
+	for key, value in patch do
+		if type(value) == "table" and type(self[key]) == "table" then
+			self[key] = util.tableMerge.deepMerge(self[key], value)
+		else
+			self[key] = value
+		end
+	end
+
+	return self
+end
+
+function Member.Prototype.merge(self: Member, ...: { [string]: any }): Member
+	local util = require("../../luau_packages/util")
+
+	for _, source in { ... } do
+		for key, value in source do
+			if type(value) == "table" and type(self[key]) == "table" then
+				self[key] = util.tableMerge.deepMerge(self[key], value)
+			else
+				self[key] = value
+			end
+		end
+	end
+
+	return self
+end
+
+function Member.Prototype.patchAsync(
+	self: Member,
+	patch: { [string]: any }
+): future.FutureLike<string, Member>
+	assert(self.state, "Cannot patch member: this Member object has no state reference")
+
+	return future.Future.new(function()
+		local util = require("../../luau_packages/util")
+		local current = self:toJSON()
+		local merged = util.tableMerge.deepMerge(current, patch)
+
+		local request = self.state.rest:newRequest()
+
+		local response = rest.guild
+			.modifyGuildMemberAsync(request, self.guildId, self.user.id, merged :: any)
+			:await()
+
+		assert(response:isOk(), `{response:unwrapErr()}`)
+
+		self:sync(response:unwrapOk())
+
+		return self
+	end) :: future.FutureLike<string, Member>
+end
+
+function Member.Prototype.mergeAsync(
+	self: Member,
+	...: { [string]: any }
+): future.FutureLike<string, Member>
+	assert(self.state, "Cannot merge member: this Member object has no state reference")
+
+	return future.Future.new(function()
+		local util = require("../../luau_packages/util")
+		local current = self:toJSON()
+
+		for _, source in { ... } do
+			current = util.tableMerge.deepMerge(current, source)
+		end
+
+		local request = self.state.rest:newRequest()
+
+		local response = rest.guild
+			.modifyGuildMemberAsync(request, self.guildId, self.user.id, current :: any)
+			:await()
+
+		assert(response:isOk(), `{response:unwrapErr()}`)
+
+		self:sync(response:unwrapOk())
+
+		return self
+	end) :: future.FutureLike<string, Member>
+end
+
 export type Member = typeof(Member.Prototype) & {
 	state: state.State,
 	guildId: apiTypes.Snowflake,
