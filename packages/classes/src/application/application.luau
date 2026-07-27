@@ -413,6 +413,139 @@ function Application.Interface.new(state: state.State, applicationData: apiTypes
 	return self
 end
 
+function Application.Prototype.toJSON(self: Application): apiTypes.ApplicationObject
+	local json: apiTypes.ApplicationObject = {
+		id = self.id,
+		name = self.name,
+		icon = self.icon,
+		description = self.description,
+		rpc_origins = self.rpcOrigins,
+		bot_public = self.botPublic,
+		bot_require_code_grant = self.botRequireCodeGrant,
+		terms_of_service_url = self.termsOfServiceUrl,
+		privacy_policy_url = self.privacyPolicyUrl,
+		summary = self.summary,
+		verify_key = self.verifyKey,
+		guild_id = self.guildId,
+		primary_sku_id = self.primarySkuId,
+		slug = self.slug,
+		cover_image = self.coverImage,
+		approximate_guild_count = self.approximateGuildCount,
+		approximate_user_install_count = self.approximateUserInstallCount,
+		redirect_uris = self.redirectUris,
+		custom_install_url = self.customInstallUrl,
+	}
+
+	if self.bot then
+		json.bot = self.bot :: any
+	end
+
+	if self.owner then
+		json.owner = self.owner :: any
+	end
+
+	if self.team then
+		json.team = self.team :: any
+	end
+
+	if self.guild then
+		json.guild = self.guild :: any
+	end
+
+	if self.flags then
+		json.flags = self.flags:toNumber()
+	end
+
+	if self.installParams then
+		json.install_params = self.installParams :: any
+	end
+
+	if self.integrationTypesConfig then
+		json.integration_types_config = self.integrationTypesConfig :: any
+	end
+
+	return json
+end
+
+function Application.Prototype.patch(self: Application, patch: { [string]: any }): Application
+	local util = require("../../luau_packages/util")
+
+	for key, value in patch do
+		if type(value) == "table" and type(self[key]) == "table" then
+			self[key] = util.tableMerge.deepMerge(self[key], value)
+		else
+			self[key] = value
+		end
+	end
+
+	return self
+end
+
+function Application.Prototype.merge(self: Application, ...: { [string]: any }): Application
+	local util = require("../../luau_packages/util")
+
+	for _, source in { ... } do
+		for key, value in source do
+			if type(value) == "table" and type(self[key]) == "table" then
+				self[key] = util.tableMerge.deepMerge(self[key], value)
+			else
+				self[key] = value
+			end
+		end
+	end
+
+	return self
+end
+
+function Application.Prototype.patchAsync(
+	self: Application,
+	patch: { [string]: any }
+): future.FutureLike<string, Application>
+	assert(self.state, "Cannot patch application: this Application object has no state reference")
+
+	return future.Future.new(function()
+		local util = require("../../luau_packages/util")
+		local current = self:toJSON()
+		local merged = util.tableMerge.deepMerge(current, patch)
+
+		local request = self.state.rest:newRequest()
+
+		local response = rest.application.editCurrentApplicationAsync(request, merged :: any):await()
+
+		assert(response:isOk(), `{response:unwrapErr()}`)
+
+		self:sync(response:unwrapOk())
+
+		return self
+	end) :: future.FutureLike<string, Application>
+end
+
+function Application.Prototype.mergeAsync(
+	self: Application,
+	...: { [string]: any }
+): future.FutureLike<string, Application>
+	assert(self.state, "Cannot merge application: this Application object has no state reference")
+
+	return future.Future.new(function()
+		local util = require("../../luau_packages/util")
+		local current = self:toJSON()
+
+		for _, source in { ... } do
+			current = util.tableMerge.deepMerge(current, source)
+		end
+
+		local request = self.state.rest:newRequest()
+
+		local response = rest.application.editCurrentApplicationAsync(request, current :: any):await()
+
+		assert(response:isOk(), `{response:unwrapErr()}`)
+
+		self:sync(response:unwrapOk())
+
+		return self
+	end) :: future.FutureLike<string, Application>
+end
+
 export type Application = typeof(Application.Prototype) & {
 	state: state.State,
 

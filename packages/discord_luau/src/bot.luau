@@ -8,6 +8,12 @@ local emitter = require("../luau_packages/emitter")
 local classes = require("../luau_packages/classes")
 local builders = require("../luau_packages/builders")
 
+local collector = require("../luau_packages/collector")
+local scheduler = require("../luau_packages/scheduler")
+local plugins = require("../luau_packages/plugins")
+local guard = require("../luau_packages/guard")
+local ratelimit = require("../luau_packages/ratelimit")
+
 local DISCORD_VERSION = 10
 
 --[=[
@@ -1872,12 +1878,18 @@ function Bot.Interface.new(options: {
 
 			onThreadDelete = emitter.new(),
 
-			onPingInteraction = emitter.new(),
-			onCommandInteraction = emitter.new(),
-			onComponentInteraction = emitter.new(),
-			onAutocompleteInteraction = emitter.new(),
-			onModalInteraction = emitter.new(),
-		} :: any,
+		onPingInteraction = emitter.new(),
+		onCommandInteraction = emitter.new(),
+		onComponentInteraction = emitter.new(),
+		onAutocompleteInteraction = emitter.new(),
+		onModalInteraction = emitter.new(),
+
+		collector = collector.Interface.new(),
+		scheduler = scheduler.Interface.new(),
+		plugins = plugins.Interface.new(),
+		guard = guard.Interface.new(),
+		ratelimit = ratelimit.Interface.new(),
+	} :: any,
 		{ __index = Bot.Prototype }
 	)
 
@@ -2196,6 +2208,12 @@ export type Bot =
 		}>,
 
 		onRateLimited: emitter.Emitter<{ opcode: number, retryAfter: number, guildId: string? }>,
+
+		collector: collector.Collector,
+		scheduler: scheduler.Scheduler,
+		plugins: plugins.Plugins,
+		guard: guard.Guard,
+		ratelimit: ratelimit.RateLimit,
 	}
 
 return Bot.Interface

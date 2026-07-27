@@ -728,6 +728,36 @@ function Message.Prototype.toJSON(self: Message): apiTypes.MessageObject
 	return json
 end
 
+function Message.Prototype.patch(self: Message, patch: { [string]: any }): Message
+	local util = require("../../luau_packages/util")
+
+	for key, value in patch do
+		if type(value) == "table" and type(self[key]) == "table" then
+			self[key] = util.tableMerge.deepMerge(self[key], value)
+		else
+			self[key] = value
+		end
+	end
+
+	return self
+end
+
+function Message.Prototype.merge(self: Message, ...: { [string]: any }): Message
+	local util = require("../../luau_packages/util")
+
+	for _, source in { ... } do
+		for key, value in source do
+			if type(value) == "table" and type(self[key]) == "table" then
+				self[key] = util.tableMerge.deepMerge(self[key], value)
+			else
+				self[key] = value
+			end
+		end
+	end
+
+	return self
+end
+
 function Message.Prototype.patchAsync(
 	self: Message,
 	patch: { [string]: any }
@@ -827,10 +857,40 @@ function Message.Prototype.toJSON(self: Message): apiTypes.MessageObject
 	return json
 end
 
+function Message.Prototype.patch(self: Message, patch: { [string]: any }): Message
+	local util = require("../../luau_packages/util")
+
+	for key, value in patch do
+		if type(value) == "table" and type(self[key]) == "table" then
+			self[key] = util.tableMerge.deepMerge(self[key], value)
+		else
+			self[key] = value
+		end
+	end
+
+	return self
+end
+
+function Message.Prototype.merge(self: Message, ...: { [string]: any }): Message
+	local util = require("../../luau_packages/util")
+
+	for _, source in { ... } do
+		for key, value in source do
+			if type(value) == "table" and type(self[key]) == "table" then
+				self[key] = util.tableMerge.deepMerge(self[key], value)
+			else
+				self[key] = value
+			end
+		end
+	end
+
+	return self
+end
+
 --[=[
 	@within Classes.Message
 	Creates a new Message instance with the specified message data.
-]=]
+]--
 function Message.Interface.new(state: state.State, messageData: apiTypes.MessageObject): Message
 	local self = setmetatable(
 		{
