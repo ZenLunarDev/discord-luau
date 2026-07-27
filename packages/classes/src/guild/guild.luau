@@ -2005,4 +2005,143 @@ export type Guild = typeof(Guild.Prototype) & {
 	safetyAlertsChannelId: apiTypes.Snowflake?,
 }
 
+function Guild.Prototype.toJSON(self: Guild): apiTypes.GuildObject
+	local json: apiTypes.GuildObject = {
+		id = self.id,
+		name = self.name,
+		icon = self.icon,
+		icon_hash = self.iconHash,
+		splash = self.splash,
+		discovery_splash = self.discoverySplash,
+		owner = self.owner,
+		owner_id = self.ownerId,
+		permissions = self.permissions,
+		region = self.region,
+		afk_channel_id = self.afkChannelId,
+		afk_timeout = self.afkTimeout,
+		widget_enabled = self.widgetEnabled,
+		widget_channel_id = self.widgetChannelId,
+		verification_level = self.verificationLevel and apiTypes.guild.VerificationLevel[self.verificationLevel],
+		default_message_notifications = self.defaultMessageNotifications
+			and apiTypes.guild.DefaultMessageNotification[self.defaultMessageNotifications],
+		explicit_content_filter = self.explicitContentFilter
+			and apiTypes.guild.ExplicitContentFilterLevel[self.explicitContentFilter],
+		premium_tier = self.premiumTier and apiTypes.guild.PremiumTier[self.premiumTier],
+		premium_subscription_count = self.premiumSubscriptionCount,
+		nsfw_level = self.nsfwLevel and apiTypes.guild.NSFWLevel[self.nsfwLevel],
+		mfa_level = self.mfaLevel and apiTypes.guild.MFALevel[self.mfaLevel],
+		application_id = self.applicationId,
+		system_channel_id = self.systemChannelId,
+		system_channel_flags = self.systemChannelFlags and self.systemChannelFlags:toNumber(),
+		rules_channel_id = self.rulesChannelId,
+		max_presences = self.maxPresences,
+		max_members = self.maxMembers,
+		vanity_url_code = self.vanityUrlCode,
+		description = self.description,
+		banner = self.banner,
+		preferred_locale = self.preferredLocale,
+		public_updates_channel_id = self.publicUpdatesChannelId,
+		max_video_channel_users = self.maxVideoChannelUsers,
+		max_stage_video_channel_users = self.maxStageVideoChannelUsers,
+		approximate_member_count = self.approximateMemberCount,
+		approximate_presence_count = self.approximatePresenceCount,
+		premium_progress_bar_enabled = self.premiumProgressBarEnabled,
+		safety_alerts_channel_id = self.safetyAlertsChannelId,
+		features = self.features,
+	}
+
+	if self.emojis and #self.emojis > 0 then
+		json.emojis = {}
+		for _, emoji in self.emojis do
+			table.insert(json.emojis, emoji :: any)
+		end
+	end
+
+	if self.roles and #self.roles > 0 then
+		json.roles = {}
+		for _, role in self.roles do
+			table.insert(json.roles, role :: any)
+		end
+	end
+
+	if self.stickers and #self.stickers > 0 then
+		json.stickers = {}
+		for _, sticker in self.stickers do
+			table.insert(json.stickers, sticker :: any)
+		end
+	end
+
+	return json
+end
+
+function Guild.Prototype.patch(self: Guild, patch: { [string]: any }): Guild
+	local util = require("../../luau_packages/util")
+	local merged = util.tableMerge.deepMerge(table.clone(self), patch)
+
+	for key, value in merged do
+		self[key] = value
+	end
+
+	return self
+end
+
+function Guild.Prototype.merge(self: Guild, ...: { [string]: any }): Guild
+	local util = require("../../luau_packages/util")
+
+	for _, source in { ... } do
+		for key, value in source do
+			if type(value) == "table" and type(self[key]) == "table" then
+				self[key] = util.tableMerge.deepMerge(self[key], value)
+			else
+				self[key] = value
+			end
+		end
+	end
+
+	return self
+end
+
+function Guild.Prototype.patchAsync(
+	self: Guild,
+	patch: { [string]: any }
+): future.FutureLike<string, Guild>
+	return future.Future.new(function()
+		local util = require("../../luau_packages/util")
+		local current = self:toJSON()
+		local merged = util.tableMerge.deepMerge(current, patch)
+
+		local request = self.state.rest:newRequest()
+		local response = rest.guild.modifyGuildAsync(request, self.id, merged :: any):await()
+
+		assert(response:isOk(), `{response:unwrapErr()}`)
+
+		self:sync(response:unwrapOk())
+
+		return self
+	end) :: future.FutureLike<string, Guild>
+end
+
+function Guild.Prototype.mergeAsync(
+	self: Guild,
+	...: { [string]: any }
+): future.FutureLike<string, Guild>
+	return future.Future.new(function()
+		local util = require("../../luau_packages/util")
+		local current = self:toJSON()
+
+		for _, source in { ... } do
+			current = util.tableMerge.deepMerge(current, source)
+		end
+
+		local request = self.state.rest:newRequest()
+		local response = rest.guild.modifyGuildAsync(request, self.id, current :: any):await()
+
+		assert(response:isOk(), `{response:unwrapErr()}`)
+
+		self:sync(response:unwrapOk())
+
+		return self
+	end) :: future.FutureLike<string, Guild>
+end
+
 return Guild.Interface

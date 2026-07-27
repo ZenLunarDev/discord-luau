@@ -352,4 +352,100 @@ export type Role = typeof(Role.Prototype) & {
 	flags: roleBitflag.RoleBitflag,
 }
 
+function Role.Prototype.toJSON(self: Role): apiTypes.GuildRoleObject
+	local json: apiTypes.GuildRoleObject = {
+		id = self.id,
+		name = self.name,
+		color = self.color,
+		colors = self.colors,
+		hoist = self.hoist,
+		icon = self.icon,
+		unicode_emoji = self.unicodeEmoji,
+		position = self.position,
+		permissions = self.permissions:build(),
+		managed = self.managed,
+		mentionable = self.mentionable,
+		flags = self.flags and self.flags:toNumber(),
+	}
+
+	if self.tags and #self.tags > 0 then
+		json.tags = {}
+		for _, tag in self.tags do
+			table.insert(json.tags, tag :: any)
+		end
+	end
+
+	return json
+end
+
+function Role.Prototype.patch(self: Role, patch: { [string]: any }): Role
+	local util = require("../../luau_packages/util")
+	local merged = util.tableMerge.deepMerge(table.clone(self), patch)
+
+	for key, value in merged do
+		self[key] = value
+	end
+
+	return self
+end
+
+function Role.Prototype.merge(self: Role, ...: { [string]: any }): Role
+	local util = require("../../luau_packages/util")
+
+	for _, source in { ... } do
+		for key, value in source do
+			if type(value) == "table" and type(self[key]) == "table" then
+				self[key] = util.tableMerge.deepMerge(self[key], value)
+			else
+				self[key] = value
+			end
+		end
+	end
+
+	return self
+end
+
+function Role.Prototype.patchAsync(
+	self: Role,
+	patch: { [string]: any }
+): future.FutureLike<string, Role>
+	return future.Future.new(function()
+		local util = require("../../luau_packages/util")
+		local current = self:toJSON()
+		local merged = util.tableMerge.deepMerge(current, patch)
+
+		local request = self.state.rest:newRequest()
+		local response = rest.guild.modifyGuildRoleAsync(request, self.guildId, self.id, merged :: any):await()
+
+		assert(response:isOk(), `{response:unwrapErr()}`)
+
+		self:sync(response:unwrapOk())
+
+		return self
+	end) :: future.FutureLike<string, Role>
+end
+
+function Role.Prototype.mergeAsync(
+	self: Role,
+	...: { [string]: any }
+): future.FutureLike<string, Role>
+	return future.Future.new(function()
+		local util = require("../../luau_packages/util")
+		local current = self:toJSON()
+
+		for _, source in { ... } do
+			current = util.tableMerge.deepMerge(current, source)
+		end
+
+		local request = self.state.rest:newRequest()
+		local response = rest.guild.modifyGuildRoleAsync(request, self.guildId, self.id, current :: any):await()
+
+		assert(response:isOk(), `{response:unwrapErr()}`)
+
+		self:sync(response:unwrapOk())
+
+		return self
+	end) :: future.FutureLike<string, Role>
+end
+
 return Role.Interface
