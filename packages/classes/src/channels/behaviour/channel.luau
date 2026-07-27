@@ -107,6 +107,87 @@ function ChannelBehaviour.Prototype.modifyAsync<T>(
 	end) :: future.FutureLike<string, Channel<T>>
 end
 
+function ChannelBehaviour.Prototype.toJSON<T>(self: Channel<T>): apiTypes.ChannelObject
+	local json: apiTypes.ChannelObject = {
+		id = self.id,
+		type = self.type and apiTypes.channel.ChannelTypes[self.type],
+		name = self.name,
+		flags = self.flags and self.flags:toNumber(),
+	}
+
+	return json
+end
+
+function ChannelBehaviour.Prototype.patch<T>(self: Channel<T>, patch: { [string]: any }): Channel<T>
+	local util = require("../../../luau_packages/util")
+	local merged = util.tableMerge.deepMerge(table.clone(self), patch)
+
+	for key, value in merged do
+		self[key] = value
+	end
+
+	return self
+end
+
+function ChannelBehaviour.Prototype.merge<T>(self: Channel<T>, ...: { [string]: any }): Channel<T>
+	local util = require("../../../luau_packages/util")
+
+	for _, source in { ... } do
+		for key, value in source do
+			if type(value) == "table" and type(self[key]) == "table" then
+				self[key] = util.tableMerge.deepMerge(self[key], value)
+			else
+				self[key] = value
+			end
+		end
+	end
+
+	return self
+end
+
+function ChannelBehaviour.Prototype.patchAsync<T>(
+	self: Channel<T>,
+	patch: { [string]: any }
+): future.FutureLike<string, Channel<T>>
+	return future.Future.new(function()
+		local util = require("../../../luau_packages/util")
+		local current = self:toJSON()
+		local merged = util.tableMerge.deepMerge(current, patch)
+
+		local request = self.state.rest:newRequest()
+		local response = rest.channel.modifyChannelAsync(request, self.id, merged :: any):await()
+
+		assert(response:isOk(), `{response:unwrapErr()}`)
+
+		self:sync(response:unwrapOk())
+
+		return self
+	end) :: future.FutureLike<string, Channel<T>>
+end
+
+function ChannelBehaviour.Prototype.mergeAsync<T>(
+	self: Channel<T>,
+	...: { [string]: any }
+): future.FutureLike<string, Channel<T>>
+	return future.Future.new(function()
+		local util = require("../../../luau_packages/util")
+		local current = self:toJSON()
+
+		for _, source in { ... } do
+			current = util.tableMerge.deepMerge(current, source)
+		end
+
+		local request = self.state.rest:newRequest()
+		local response = rest.channel.modifyChannelAsync(request, self.id, current :: any):await()
+
+		assert(response:isOk(), `{response:unwrapErr()}`)
+
+		self:sync(response:unwrapOk())
+
+		return self
+	end) :: future.FutureLike<string, Channel<T>>
+end
+
 function ChannelBehaviour.Interface.inheritProperties(class: any, channelData: apiTypes.ChannelObject)
 	class.type = apiTypes.channel.ChannelTypes[channelData.type]
 

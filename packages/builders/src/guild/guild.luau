@@ -533,4 +533,56 @@ export type Guild = typeof(Guild.Prototype) & {
 
 export type JSON = typeof(Guild.Prototype.build(nil :: any))
 
+function Guild.Prototype.patch(self: Guild, patch: { [string]: any }): Guild
+	local util = require("../../luau_packages/util")
+	local merged = util.tableMerge.deepMerge(table.clone(self), patch)
+
+	for key, value in merged do
+		self[key] = value
+	end
+
+	return self
+end
+
+function Guild.Prototype.merge(self: Guild, ...: { [string]: any }): Guild
+	local util = require("../../luau_packages/util")
+
+	for _, source in { ... } do
+		for key, value in source do
+			if type(value) == "table" and type(self[key]) == "table" then
+				self[key] = util.tableMerge.deepMerge(self[key], value)
+			else
+				self[key] = value
+			end
+		end
+	end
+
+	return self
+end
+
+function Guild.Interface.fromTable(resource: {
+	name: string?,
+	verificationLevel: apiTypes.VerificationLevel?,
+	defaultMessageNotifications: apiTypes.DefaultMessageNotification?,
+	explicitContentFilter: apiTypes.ExplicitContentFilterLevel?,
+	afkChannelId: apiTypes.Snowflake?,
+	afkTimeout: number?,
+	icon: string?,
+	ownerId: apiTypes.Snowflake?,
+	splash: string?,
+	discoverySplash: string?,
+	banner: string?,
+	systemChannelId: apiTypes.Snowflake?,
+	systemChannelFlags: number?,
+	rulesChannelId: apiTypes.Snowflake?,
+	publicUpdatesChannelId: apiTypes.Snowflake?,
+	preferredLocale: apiTypes.LanguageLocales?,
+	features: { apiTypes.GuildFeature }?,
+	description: string?,
+	premiumProgressBarEnabled: boolean?,
+	safetyAlertsChannelId: apiTypes.Snowflake?,
+}?): Guild
+	return Guild.Interface.new(resource)
+end
+
 return Guild.Interface

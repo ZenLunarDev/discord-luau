@@ -247,4 +247,101 @@ export type User = typeof(User.Prototype) & {
 	primaryGuild: primaryGuild.PrimaryGuild?,
 }
 
+function User.Prototype.toJSON(self: User): apiTypes.UserObject
+	local json: apiTypes.UserObject = {
+		id = self.id,
+		username = self.username,
+		discriminator = self.discriminator,
+		global_name = self.globalName,
+		avatar = self.avatar,
+		bot = self.bot,
+		system = self.system,
+		mfa_enabled = self.mfaEnabled,
+		locale = self.locale,
+		verified = self.verified,
+		banner = self.banner,
+		email = self.email,
+		flags = self.flags,
+		premium_type = self.premiumType and apiTypes.user.PremiumType[self.premiumType],
+		public_flags = self.publicFlags,
+		accent_color = self.accentColor,
+	}
+
+	return json
+end
+
+function User.Prototype.patch(self: User, patch: { [string]: any }): User
+	local util = require("../../luau_packages/util")
+	local merged = util.tableMerge.deepMerge(table.clone(self), patch)
+
+	for key, value in merged do
+		self[key] = value
+	end
+
+	return self
+end
+
+function User.Prototype.merge(self: User, ...: { [string]: any }): User
+	local util = require("../../luau_packages/util")
+
+	for _, source in { ... } do
+		for key, value in source do
+			if type(value) == "table" and type(self[key]) == "table" then
+				self[key] = util.tableMerge.deepMerge(self[key], value)
+			else
+				self[key] = value
+			end
+		end
+	end
+
+	return self
+end
+
+function User.Prototype.patchAsync(
+	self: User,
+	patch: { [string]: any }
+): future.FutureLike<string, User>
+	assert(self.state, "Cannot patch user: this User object has no state reference")
+
+	return future.Future.new(function()
+		local util = require("../../luau_packages/util")
+		local current = self:toJSON()
+		local merged = util.tableMerge.deepMerge(current, patch)
+
+		local request = self.state.rest:newRequest()
+		local response = rest.user.modifyCurrentUserAsync(request, merged :: any):await()
+
+		assert(response:isOk(), `{response:unwrapErr()}`)
+
+		self:sync(response:unwrapOk())
+
+		return self
+	end) :: future.FutureLike<string, User>
+end
+
+function User.Prototype.mergeAsync(
+	self: User,
+	...: { [string]: any }
+): future.FutureLike<string, User>
+	assert(self.state, "Cannot merge user: this User object has no state reference")
+
+	return future.Future.new(function()
+		local util = require("../../luau_packages/util")
+		local current = self:toJSON()
+
+		for _, source in { ... } do
+			current = util.tableMerge.deepMerge(current, source)
+		end
+
+		local request = self.state.rest:newRequest()
+		local response = rest.user.modifyCurrentUserAsync(request, current :: any):await()
+
+		assert(response:isOk(), `{response:unwrapErr()}`)
+
+		self:sync(response:unwrapOk())
+
+		return self
+	end) :: future.FutureLike<string, User>
+end
+
 return User.Interface
