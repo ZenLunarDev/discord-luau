@@ -27,6 +27,9 @@ Start with the [Installation](https://discordluau-docs.devcomp.workers.dev/getti
 ### Special Thanks
 A sub-section just to credit people who have committed to the Discord Luau project and cannot be represented through the GitHub contributors section.
 
+#### Project
+- [ZenLunarDev](https://github.com/ZenLunarDev) - Copyright holder & project maintainer
+
 #### Icon & Design
 - [Dekkonot](https://github.com/Dekkonot) - Tilt concept
 - [BlizzarBlitz](https://github.com/BizzarBlitz) - Figma troubleshooting & ideas
